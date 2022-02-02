@@ -266,8 +266,8 @@ func = int(input("""
  🐱 (5) Get Columns
  🐱 (6) Get Data
 Your Option : """))
-# threads = int(input("Threads (Suggest 10): "))
-threads = 10
+threads = int(input("Threads (Suggest 10): "))
+# threads = 10
 pool = Pool(threads)
 
 if func == 0:
