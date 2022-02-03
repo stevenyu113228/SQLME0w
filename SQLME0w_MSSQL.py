@@ -1,4 +1,3 @@
-from matplotlib.pyplot import table
 import requests
 from multiprocessing import Pool
 from itertools import repeat
